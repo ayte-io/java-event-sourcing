@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.ayte</groupId>
+    <artifactId>event-sourcing</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <modules>
+        <module>src/core</module>
+    </modules>
+    <packaging>pom</packaging>
+
+    <name>Event Sourcing Framework</name>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+    <inceptionYear>2018</inceptionYear>
+    <organization>
+        <name>Ayte</name>
+        <url>https://ayte.io</url>
+    </organization>
+    <developers>
+        <developer>
+            <id>etki</id>
+            <name>Etki</name>
+            <email>etki@etki.me</email>
+        </developer>
+    </developers>
+
+    <issueManagement>
+        <url>https://github.com/ayte-io/java-event-sourcing/issues</url>
+        <system>github</system>
+    </issueManagement>
+
+    <scm>
+        <connection>scm:git:git@github.com:ayte-io/java-event-sourcing.git</connection>
+        <tag>HEAD</tag>
+        <url>https://github.com/ayte-io/java-event-sourcing</url>
+    </scm>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+
+        <maven.compiler.version>3.7.0</maven.compiler.version>
+        <maven.surefire.version>2.21.0</maven.surefire.version>
+
+        <allure.plugin.version>2.9</allure.plugin.version>
+        <allure.report.version>2.6.0</allure.report.version>
+        <aspectjweaver.version>1.8.10</aspectjweaver.version>
+        <allure.junit5.version>2.6.0</allure.junit5.version>
+        <allure.metadata-path>allure/metadata</allure.metadata-path>
+        <allure.install-path>allure/cli</allure.install-path>
+
+        <junit.version>5.2.0</junit.version>
+        <junit.surefire-provider.version>1.2.0</junit.surefire-provider.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-junit5</artifactId>
+                <version>${allure.junit5.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven.surefire</groupId>
+                <artifactId>surefire-logger-api</artifactId>
+                <version>${maven.surefire.version}</version>
+                <scope>test</scope>
+                <optional>true</optional>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-junit5</artifactId>
+        </dependency>
+        <!-- https://github.com/junit-team/junit5/issues/1367 workaround -->
+        <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-logger-api</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven.compiler.version}</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.platform</groupId>
+                            <artifactId>junit-platform-surefire-provider</artifactId>
+                            <version>${junit.surefire-provider.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.aspectj</groupId>
+                            <artifactId>aspectjweaver</artifactId>
+                            <version>${aspectjweaver.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <argLine>
+                            -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectjweaver.version}/aspectjweaver-${aspectjweaver.version}.jar"
+                        </argLine>
+                        <systemProperties>
+                            <property>
+                                <name>junit.jupiter.extensions.autodetection.enabled</name>
+                                <value>true</value>
+                            </property>
+                            <property>
+                                <name>allure.results.directory</name>
+                                <value>target/${allure.metadata-path}</value>
+                            </property>
+                        </systemProperties>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>io.qameta.allure</groupId>
+                    <artifactId>allure-maven</artifactId>
+                    <version>${allure.plugin.version}</version>
+                    <configuration>
+                        <resultsDirectory>${allure.metadata-path}</resultsDirectory>
+                        <reportVersion>${allure.report.version}</reportVersion>
+                        <installDirectory>target/${allure.install-path}</installDirectory>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
