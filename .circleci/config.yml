@@ -1,0 +1,50 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:8-jdk
+    working_directory: /tmp/workspace
+    environment:
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-mvnw-{{ checksum ".mvn/wrapper/maven-wrapper.properties" }}
+            - v1-mvnw
+      - run: ./mvnw -help
+      - save_cache:
+          key: v1-mvnw-{{ checksum ".mvn/wrapper/maven-wrapper.properties" }}
+          paths:
+            - .mvn/wrapper/maven-wrapper.jar
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+      - run: ./mvnw dependency:resolve
+      - save_cache:
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+          paths:
+            - ~/.m2
+      - restore_cache:
+          keys:
+            - v1-allure-{{ checksum "pom.xml" }}
+            - v1-allure-
+      - run: ./mvnw allure:install
+      - save_cache:
+          key: v1-allure-{{ checksum "pom.xml" }}
+          paths:
+            - target/allure/cli
+      - run: ./mvnw verify
+      - run:
+          command: ./mvnw allure:report
+          when: always
+      - store_artifacts:
+          path: src/core/target/site/allure-maven-plugin
+          destination: Core/Allure
+          when: always
+      - store_test_results:
+          path: src/core/target/surefire-reports
+          when: always
+
