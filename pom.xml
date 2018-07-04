@@ -50,6 +50,8 @@
         <maven.compiler.version>3.7.0</maven.compiler.version>
         <maven.surefire.version>2.21.0</maven.surefire.version>
 
+        <lombok.version>1.16.16</lombok.version>
+
         <allure.plugin.version>2.9</allure.plugin.version>
         <allure.report.version>2.6.0</allure.report.version>
         <aspectjweaver.version>1.8.10</aspectjweaver.version>
@@ -63,6 +65,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-engine</artifactId>
@@ -86,6 +94,10 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
