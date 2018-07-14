@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-interface EventStorage {
-    CompletableFuture<Optional<SerializedEvent>> get(String entityType, String entityId);
+public interface EventStorage {
+    CompletableFuture<Optional<SerializedEvent>> get(String entityType, String entityId, long sequenceNumber);
     CompletableFuture<List<SerializedEvent>> list(String entityType, String entityId, long skip, long size);
 
     /**
@@ -16,15 +16,8 @@ interface EventStorage {
     CompletableFuture<Boolean> save(SerializedEvent event);
 
     /**
-     * @return Sequence number of last event for specified entity, zero if nothing has been stored yet.
+     * @return Sequence number of last event for specified entity, empty
+     * optional if nothing has been stored yet.
      */
-    CompletableFuture<Long> getSequenceNumber(String entityType, String entityId);
-
-    default CompletableFuture<List<SerializedEvent>> list(String entityType, String entityId, long skip) {
-        return list(entityType, entityId, skip, Long.MAX_VALUE);
-    }
-
-    default CompletableFuture<List<SerializedEvent>> list(String entityType, String entityId) {
-        return list(entityType, entityId, 0);
-    }
+    CompletableFuture<Optional<Long>> getSequenceNumber(String entityType, String entityId);
 }

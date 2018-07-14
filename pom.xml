@@ -49,8 +49,13 @@
 
         <maven.compiler.version>3.7.0</maven.compiler.version>
         <maven.surefire.version>2.21.0</maven.surefire.version>
+        <maven.report.version>3.0.0</maven.report.version>
+        <maven.site.version>3.7.1</maven.site.version>
+        <pmd.version>3.10.0</pmd.version>
 
-        <lombok.version>1.16.16</lombok.version>
+        <lombok.version>1.18.0</lombok.version>
+
+        <slf4j.api.version>1.7.25</slf4j.api.version>
 
         <allure.plugin.version>2.9</allure.plugin.version>
         <allure.report.version>2.6.0</allure.report.version>
@@ -61,6 +66,10 @@
 
         <junit.version>5.2.0</junit.version>
         <junit.surefire-provider.version>1.2.0</junit.surefire-provider.version>
+        <mockito.version>2.19.0</mockito.version>
+        <openclover.version>4.2.1</openclover.version>
+        <hamcrest.version>1.3</hamcrest.version>
+        <hamcrest.spotify.version>1.1.1</hamcrest.spotify.version>
     </properties>
 
     <dependencyManagement>
@@ -72,10 +81,20 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.api.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-engine</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.qameta.allure</groupId>
@@ -90,6 +109,30 @@
                 <scope>test</scope>
                 <optional>true</optional>
             </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest-all</artifactId>
+                <version>${hamcrest.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.spotify</groupId>
+                <artifactId>hamcrest-future</artifactId>
+                <version>${hamcrest.spotify.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.spotify</groupId>
+                <artifactId>hamcrest-optional</artifactId>
+                <version>${hamcrest.spotify.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -99,8 +142,16 @@
             <artifactId>lombok</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
         </dependency>
         <dependency>
             <groupId>io.qameta.allure</groupId>
@@ -110,6 +161,22 @@
         <dependency>
             <groupId>org.apache.maven.surefire</groupId>
             <artifactId>surefire-logger-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-all</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>hamcrest-future</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>hamcrest-optional</artifactId>
         </dependency>
     </dependencies>
 
@@ -124,6 +191,34 @@
                         <source>${java.version}</source>
                         <target>${java.version}</target>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>${maven.site.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-project-info-reports-plugin</artifactId>
+                    <version>${maven.report.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.maven.shared</groupId>
+                            <artifactId>maven-shared-jar</artifactId>
+                            <version>1.1</version>
+                            <exclusions>
+                                <exclusion>
+                                    <groupId>org.apache.bcel</groupId>
+                                    <artifactId>bcel</artifactId>
+                                </exclusion>
+                            </exclusions>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.google.code.findbugs</groupId>
+                            <artifactId>bcel-findbugs</artifactId>
+                            <version>6.0</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -155,6 +250,9 @@
                                 <value>target/${allure.metadata-path}</value>
                             </property>
                         </systemProperties>
+                        <parallel>all</parallel>
+                        <perCoreThreadCount>true</perCoreThreadCount>
+                        <threadCount>1</threadCount>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -166,8 +264,58 @@
                         <reportVersion>${allure.report.version}</reportVersion>
                         <installDirectory>target/${allure.install-path}</installDirectory>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>report</id>
+                            <phase>pre-site</phase>
+                            <goals>
+                                <goal>install</goal>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.openclover</groupId>
+                    <artifactId>clover-maven-plugin</artifactId>
+                    <version>${openclover.version}</version>
+                    <configuration>
+                        <generateXml>true</generateXml>
+                        <generateJson>true</generateJson>
+                        <generateHtml>true</generateHtml>
+                        <generateHistorical>true</generateHistorical>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>report</id>
+                            <phase>pre-site</phase>
+                            <goals>
+                                <goal>aggregate</goal>
+                                <goal>clover</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>${pmd.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.openclover</groupId>
+                <artifactId>clover-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
 </project>

@@ -1,13 +1,6 @@
 version: 2
 jobs:
-  build:
-    docker:
-      - image: circleci/openjdk:8-jdk
-    working_directory: /tmp/workspace
-    environment:
-      JVM_OPTS: -Xmx3200m
-      TERM: dumb
-    steps:
+  prepare-workspace:
       - checkout
       - restore_cache:
           keys:
@@ -27,24 +20,64 @@ jobs:
           key: v1-dependencies-{{ checksum "pom.xml" }}
           paths:
             - ~/.m2
-      - restore_cache:
-          keys:
-            - v1-allure-{{ checksum "pom.xml" }}
-            - v1-allure-
-      - run: ./mvnw allure:install
-      - save_cache:
-          key: v1-allure-{{ checksum "pom.xml" }}
+            - target/allure/cli
+      - persist_to_workspace:
+          root: /tmp/workspace
           paths:
             - target/allure/cli
-      - run: ./mvnw verify
+  build-core:
+    docker:
+      - image: circleci/openjdk:8-jdk
+    working_directory: /tmp/workspace
+    environment:
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+      - run: ./mvnw -pl src/core -am clean clover:instrument test
       - run:
-          command: ./mvnw allure:report
+          command: ./mvnw -pl src/core -am site
           when: always
       - store_artifacts:
-          path: src/core/target/site/allure-maven-plugin
-          destination: Core/Allure
+          path: src/core/target/site
+          destination: Core
           when: always
       - store_test_results:
           path: src/core/target/surefire-reports
           when: always
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - src/core
+  collect-coverage:
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+      - run: ./mvnw site
+      - store_artifacts:
+          path: target/site
+          destination: Parent
+          when: always
 
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-core:
+          requires:
+            - prepare-workspace
+      - collect-coverage:
+          requires:
+            - build-core

@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.ZonedDateTime;
 
 @Data
-@Builder(toBuilder = true, builderClassName = "Builder")
+@Builder(toBuilder = true)
 @SuppressWarnings("squid:S00119")
 public class Entity<E, ID> {
     private final Identifier<ID> id;
