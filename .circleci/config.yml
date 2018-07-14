@@ -1,19 +1,25 @@
-version: 2
-jobs:
-  build:
+defaults:
+  job: &job_defaults
     docker:
       - image: circleci/openjdk:8-jdk
     working_directory: /tmp/workspace
     environment:
       JVM_OPTS: -Xmx3200m
       TERM: dumb
+
+version: 2
+jobs:
+  prepare-workspace:
+    <<: *job_defaults
     steps:
       - checkout
       - restore_cache:
           keys:
             - v1-mvnw-{{ checksum ".mvn/wrapper/maven-wrapper.properties" }}
             - v1-mvnw
-      - run: ./mvnw -help
+      - run:
+          name: 'Maven:Initialize'
+          command: ./mvnw -help
       - save_cache:
           key: v1-mvnw-{{ checksum ".mvn/wrapper/maven-wrapper.properties" }}
           paths:
@@ -22,29 +28,84 @@ jobs:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
             - v1-dependencies-
-      - run: ./mvnw dependency:resolve
+      - run:
+          name: 'Maven:Dependencies:Resolve'
+          command: ./mvnw dependency:resolve
+      - run:
+          name: 'Maven:Allure:Install'
+          command: ./mvnw allure:install
       - save_cache:
           key: v1-dependencies-{{ checksum "pom.xml" }}
           paths:
             - ~/.m2
-      - restore_cache:
-          keys:
-            - v1-allure-{{ checksum "pom.xml" }}
-            - v1-allure-
-      - run: ./mvnw allure:install
-      - save_cache:
-          key: v1-allure-{{ checksum "pom.xml" }}
+            - target/allure/cli
+      - persist_to_workspace:
+          root: /tmp/workspace
           paths:
             - target/allure/cli
-      - run: ./mvnw verify
+  build-core:
+    <<: *job_defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - restore_cache:
+          keys:
+            - v1-mvnw-{{ checksum ".mvn/wrapper/maven-wrapper.properties" }}
+            - v1-mvnw
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
       - run:
-          command: ./mvnw allure:report
+          name: Unit Testing
+          command: ./mvnw -pl src/core -am clean clover:instrument test
+      - run:
+          name: Site
+          command: ./mvnw -pl src/core -am site
           when: always
       - store_artifacts:
-          path: src/core/target/site/allure-maven-plugin
-          destination: Core/Allure
+          path: src/core/target/site
+          destination: Core
           when: always
       - store_test_results:
           path: src/core/target/surefire-reports
           when: always
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - src/core
+  collect-coverage:
+    <<: *job_defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - restore_cache:
+          keys:
+            - v1-mvnw-{{ checksum ".mvn/wrapper/maven-wrapper.properties" }}
+            - v1-mvnw
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+      - run:
+          name: Site
+          command: ./mvnw site
+      - store_artifacts:
+          path: target/site
+          destination: Parent
+          when: always
 
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - prepare-workspace
+      - build-core:
+          requires:
+            - prepare-workspace
+      - collect-coverage:
+          requires:
+            - build-core

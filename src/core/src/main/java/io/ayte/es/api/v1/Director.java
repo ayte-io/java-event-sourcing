@@ -26,16 +26,16 @@ public interface Director {
      * @return Entity at specified version or {@link MissingVersionException} if
      * such version doesn't exist
      */
-    <E, ID> CompletableFuture<Entity<E, ID>> get(Class<E> entity, ID id, long version);
+    <E, ID> CompletableFuture<Optional<Entity<E, ID>>> get(Class<E> entity, ID id, long version);
 
     /**
      * Tries to save provided mutation as event under specified event number.
      *
      * @return True on success, false if event number is already occupied
      */
-    <E, ID> CompletableFuture<Boolean> save(Class<E> entity, ID id, Mutation<E, ID> mutation, long sequenceNumber);
+    <E, ID> CompletableFuture<Boolean> save(SaveRequest<E, ID> request);
 
-    <E, ID> CompletableFuture<List<Event<?, E, ID>>> getEvents(Class<E> entity, ID id, long skip, long size);
+    <E, ID> CompletableFuture<List<Event<E, ID>>> getEvents(Class<E> entity, ID id, long skip, long size);
     <E, ID> CompletableFuture<List<Snapshot<E, ID>>> getSnapshots(Class<E> entity, ID id, long skip, long size);
     <E, ID> CompletableFuture<Optional<Snapshot<E, ID>>> getSnapshot(Class<E> entity, ID id, long snapshotNumber);
 
@@ -65,17 +65,18 @@ public interface Director {
         return getSequenceNumber(entity, id)
                 .thenCompose(number -> {
                     return number
-                            .map(value -> get(entity, id, value).thenApply(Optional::of))
+                            .map(value -> get(entity, id, value))
                             .orElseGet(CompletableFutures::emptyOptional);
                 });
     }
 
     /**
      * Tries to save mutation determining event number on it's own. Requires
-     * extra storage RTT compared to {@link #save(Class, Object, Mutation, long)}
+     * extra storage RTT compared to {@link #save(SaveRequest)}
      */
-    default <E, ID> CompletableFuture<Boolean> save(Class<E> entity, ID id, Mutation<E, ID> mutation) {
-        return getSequenceNumber(entity, id).thenCompose(number -> save(entity, id, mutation, number.orElse(0L) + 1));
+    default <E, ID> CompletableFuture<Boolean> save(AppendRequest<E, ID> request) {
+        return getSequenceNumber(request.getEntity(), request.getId())
+                .thenCompose(number -> save(SaveRequest.from(request, number.orElse(0L) + 1)));
     }
 
     /**
@@ -83,39 +84,36 @@ public interface Director {
      * applied.
      *
      * Please note that this method requires extra storage RTT compared to
-     * {@link #save(Class, Object, Mutation, long)}.
+     * {@link #save(AppendRequest)}.
      *
      * @return Result with entity with applied mutation or unsuccessful result.
      */
-    default <E, ID> CompletableFuture<Result<Entity<E, ID>>> apply(
-            Class<E> entity,
-            ID id,
-            Mutation<E, ID> mutation,
-            long sequenceNumber
-    ) {
-        return save(entity, id, mutation, sequenceNumber)
+    default <E, ID> CompletableFuture<Result<Entity<E, ID>>> apply(SaveRequest<E, ID> request) {
+        return save(request)
                 .thenCompose(success -> {
                     if (!success) {
                         return CompletableFutures.completed(Result.failure());
                     }
-                    return get(entity, id, sequenceNumber).thenApply(Result::successful);
+                    return get(request.getEntity(), request.getId(), request.getSequenceNumber())
+                            .thenApply(Result::from);
                 });
     }
 
     /**
-     * Same as {@link #apply(Class, Object, Mutation, long)}, but determines
+     * Same as {@link #apply(SaveRequest)}, but determines
      * event number on it's own. Requires extra RTT to storage, resulting in 3
      * RTTs total.
      */
-    default <E, ID> CompletableFuture<Result<Entity<E, ID>>> apply(Class<E> entity, ID id, Mutation<E, ID> mutation) {
-        return getSequenceNumber(entity, id).thenCompose(number -> apply(entity, id, mutation, number.orElse(0L) + 1));
+    default <E, ID> CompletableFuture<Result<Entity<E, ID>>> apply(AppendRequest<E, ID> request) {
+        return getSequenceNumber(request.getEntity(), request.getId())
+                .thenCompose(number -> apply(SaveRequest.from(request, number.orElse(0L) + 1)));
     }
 
-    default <E, ID> CompletableFuture<List<Event<?, E, ID>>> getEvents(Class<E> entity, ID id, long skip) {
+    default <E, ID> CompletableFuture<List<Event<E, ID>>> getEvents(Class<E> entity, ID id, long skip) {
         return getEvents(entity, id, skip, Long.MAX_VALUE);
     }
 
-    default <E, ID> CompletableFuture<List<Event<?, E, ID>>> getEvents(Class<E> entity, ID id) {
+    default <E, ID> CompletableFuture<List<Event<E, ID>>> getEvents(Class<E> entity, ID id) {
         return getEvents(entity, id, 0);
     }
 
