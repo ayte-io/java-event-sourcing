@@ -7,7 +7,7 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 
 @Data
-@Builder(toBuilder = true, builderClassName = "Builder")
+@Builder(toBuilder = true)
 public class SerializedSnapshot {
     private final String entityType;
     private final String entityId;

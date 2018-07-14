@@ -18,7 +18,7 @@ public interface Repository<E, ID> {
     CompletableFuture<Entity<E, ID>> get(ID id, long version);
     CompletableFuture<Boolean> save(ID id, Mutation<E, ID> mutation, long sequenceNumber);
     CompletableFuture<Optional<Long>> getSequenceNumber(ID id);
-    CompletableFuture<List<Event<?, E, ID>>> getEvents(ID id, long skip, long limit);
+    CompletableFuture<List<Event<E, ID>>> getEvents(ID id, long skip, long limit);
     CompletableFuture<Pair<Optional<Long>, Optional<Long>>> purge(ID id);
 
     @SuppressWarnings({"squid:S1602", "CodeBlock2Expr"})
@@ -52,11 +52,11 @@ public interface Repository<E, ID> {
         return getSequenceNumber(id).thenCompose(number -> apply(id, mutation, number.orElse(0L) + 1));
     }
 
-    default CompletableFuture<List<Event<?, E, ID>>> getEvents(ID id, long skip) {
+    default CompletableFuture<List<Event<E, ID>>> getEvents(ID id, long skip) {
         return getEvents(id, skip, Long.MAX_VALUE);
     }
 
-    default CompletableFuture<List<Event<?, E, ID>>> getEvents(ID id) {
+    default CompletableFuture<List<Event<E, ID>>> getEvents(ID id) {
         return getEvents(id, 0);
     }
 }
